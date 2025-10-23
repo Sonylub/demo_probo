@@ -3,8 +3,13 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 import re
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from math import ceil
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -82,68 +87,98 @@ class ServiceMaterial(db.Model):
 
 # Функция расчета себестоимости услуги
 def calculate_service_cost(service_code):
-    service = Service.query.filter_by(service_code=service_code).first()
-    if not service:
-        return -1
-
-    labor_cost = float(service.time_norm_hours * service.hourly_rate)
-    material_cost = 0
-    service_materials = ServiceMaterial.query.filter_by(service_code=service_code).all()
-    if not service_materials:
-        return -1
-
-    for sm in service_materials:
-        material = Material.query.filter_by(material_id=sm.material_id).first()
-        if not material:
+    try:
+        service = Service.query.filter_by(service_code=service_code).first()
+        if not service:
+            logger.error(f"Service not found: {service_code}")
             return -1
-        material_cost += float(sm.consumption_norm * material.current_price)
 
-    total_cost = labor_cost + material_cost
-    return round(total_cost, 2)
+        labor_cost = float(service.time_norm_hours * service.hourly_rate)
+        material_cost = 0
+        service_materials = ServiceMaterial.query.filter_by(service_code=service_code).all()
+        if not service_materials:
+            logger.error(f"No materials found for service: {service_code}")
+            return -1
+
+        for sm in service_materials:
+            material = Material.query.filter_by(material_id=sm.material_id).first()
+            if not material:
+                logger.error(f"Material not found for service material: {sm.material_id}")
+                return -1
+            material_cost += float(sm.consumption_norm * material.current_price)
+
+        total_cost = labor_cost + material_cost
+        return round(total_cost, 2)
+    except Exception as e:
+        logger.error(f"Error calculating service cost for {service_code}: {str(e)}")
+        return -1
 
 # Функция расчета количества материала
 def calculate_material_quantity(service_type, material_type, quantity, service_params):
-    # Проверка входных параметров
-    if not isinstance(quantity, int) or quantity <= 0:
+    try:
+        # Проверка входных параметров
+        if not isinstance(quantity, int) or quantity <= 0:
+            logger.error(f"Invalid quantity: {quantity}")
+            return -1
+        if not isinstance(service_params, (int, float)) or service_params <= 0:
+            logger.error(f"Invalid service_params: {service_params}")
+            return -1
+
+        # Получение данных о типе услуги
+        service_type_data = ServiceType.query.filter_by(type_name=service_type).first()
+        if not service_type_data:
+            logger.error(f"Service type not found: {service_type}")
+            return -1
+
+        # Получение данных о типе материала
+        material_type_data = MaterialType.query.filter_by(type_name=material_type).first()
+        if not material_type_data:
+            logger.error(f"Material type not found: {material_type}")
+            return -1
+
+        # Расчет количества материала на одну услугу
+        base_quantity = service_params * float(service_type_data.complexity_coefficient)
+
+        # Учет перерасхода
+        overconsumption = float(material_type_data.overconsumption_percent)
+        total_quantity = base_quantity * quantity * (1 + overconsumption)
+
+        # Округление вверх до целого
+        return ceil(total_quantity)
+    except Exception as e:
+        logger.error(f"Error calculating material quantity: {str(e)}")
         return -1
-    if not isinstance(service_params, (int, float)) or service_params <= 0:
-        return -1
-
-    # Получение данных о типе услуги
-    service_type_data = ServiceType.query.filter_by(type_name=service_type).first()
-    if not service_type_data:
-        return -1
-
-    # Получение данных о типе материала
-    material_type_data = MaterialType.query.filter_by(type_name=material_type).first()
-    if not material_type_data:
-        return -1
-
-    # Расчет количества материала на одну услугу
-    base_quantity = service_params * float(service_type_data.complexity_coefficient)
-
-    # Учет перерасхода
-    overconsumption = float(material_type_data.overconsumption_percent)
-    total_quantity = base_quantity * quantity * (1 + overconsumption)
-
-    # Округление вверх до целого
-    return ceil(total_quantity)
 
 # Создание таблиц
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+        logger.info("Database tables created successfully")
+except OperationalError as e:
+    logger.error(f"Database connection error: {str(e)}")
+    raise
 
 # Главная страница (список партнеров)
 @app.route('/')
 def index():
-    partners = Partner.query.all()
-    return render_template('index.html', partners=partners)
+    try:
+        partners = Partner.query.all()
+        return render_template('index.html', partners=partners)
+    except Exception as e:
+        logger.error(f"Error loading index: {str(e)}")
+        flash('Ошибка загрузки страницы.', 'error')
+        return render_template('index.html', partners=[])
 
 # Список партнеров
 @app.route('/partners')
 def partners():
-    partners = Partner.query.all()
-    return render_template('partners.html', partners=partners)
+    try:
+        partners = Partner.query.all()
+        return render_template('partners.html', partners=partners)
+    except Exception as e:
+        logger.error(f"Error loading partners: {str(e)}")
+        flash('Ошибка загрузки страницы.', 'error')
+        return render_template('partners.html', partners=[])
 
 # Форма создания заказа
 @app.route('/order', methods=['GET', 'POST'])
@@ -176,15 +211,22 @@ def order():
             flash('Заказ успешно создан.', 'success')
             return redirect(url_for('index'))
         except ValueError:
+            logger.error(f"Invalid quantity value: {quantity}")
             flash('Некорректное значение количества. Введите целое положительное число.', 'error')
             return redirect(url_for('order'))
         except Exception as e:
+            logger.error(f"Error creating order: {str(e)}")
             flash(f'Ошибка при создании заказа: {str(e)}', 'error')
             return redirect(url_for('order'))
 
-    partners = Partner.query.all()
-    services = Service.query.all()
-    return render_template('order.html', partners=partners, services=services)
+    try:
+        partners = Partner.query.all()
+        services = Service.query.all()
+        return render_template('order.html', partners=partners, services=services)
+    except Exception as e:
+        logger.error(f"Error loading order page: {str(e)}")
+        flash('Ошибка загрузки страницы.', 'error')
+        return render_template('order.html', partners=[], services=[])
 
 # Форма добавления/редактирования партнера
 @app.route('/partner/<int:partner_id>/edit', methods=['GET', 'POST'])
@@ -266,36 +308,55 @@ def edit_partner(partner_id=None):
             flash(f'Партнер успешно {action}.', 'success')
             return redirect(url_for('index'))
         except ValueError:
+            logger.error(f"Invalid rating value: {rating}")
             flash('Рейтинг должен быть целым неотрицательным числом.', 'error')
             return redirect(request.url)
         except IntegrityError:
             db.session.rollback()
+            logger.error(f"Integrity error for partner: {partner_name}, INN: {inn}")
             flash('Ошибка: Партнер с таким названием или ИНН уже существует.', 'error')
             return redirect(request.url)
         except Exception as e:
+            logger.error(f"Error editing partner: {str(e)}")
             flash(f'Ошибка: {str(e)}', 'error')
             return redirect(request.url)
 
-    partner = Partner.query.get(partner_id) if partner_id else None
-    return render_template('edit_partner.html', partner=partner, partner_types=partner_types)
+    try:
+        partner = Partner.query.get(partner_id) if partner_id else None
+        return render_template('edit_partner.html', partner=partner, partner_types=partner_types)
+    except Exception as e:
+        logger.error(f"Error loading edit partner page: {str(e)}")
+        flash('Ошибка загрузки страницы.', 'error')
+        return render_template('edit_partner.html', partner=None, partner_types=partner_types)
 
 # История услуг по партнеру
 @app.route('/partner/<int:partner_id>/history')
 def partner_history(partner_id):
-    partner = Partner.query.get_or_404(partner_id)
-    orders = Order.query.filter_by(partner_id=partner_id).join(Service).all()
-    return render_template('partner_history.html', partner=partner, orders=orders)
+    try:
+        partner = Partner.query.get_or_404(partner_id)
+        orders = Order.query.filter_by(partner_id=partner_id).join(Service).all()
+        return render_template('partner_history.html', partner=partner, orders=orders)
+    except Exception as e:
+        logger.error(f"Error loading partner history for ID {partner_id}: {str(e)}")
+        flash('Ошибка загрузки истории услуг.', 'error')
+        return redirect(url_for('index'))
 
 # Расчет себестоимости услуги
 @app.route('/cost/<service_code>')
 def cost(service_code):
-    total_cost = calculate_service_cost(service_code)
-    service = Service.query.filter_by(service_code=service_code).first()
-    if not service:
-        flash('Услуга не найдена.', 'error')
+    try:
+        total_cost = calculate_service_cost(service_code)
+        service = Service.query.filter_by(service_code=service_code).first()
+        if not service:
+            logger.error(f"Service not found: {service_code}")
+            flash('Услуга не найдена.', 'error')
+            return redirect(url_for('index'))
+        service_name = service.service_name
+        return render_template('cost.html', service_code=service_code, service_name=service_name, total_cost=total_cost)
+    except Exception as e:
+        logger.error(f"Error loading cost page for {service_code}: {str(e)}")
+        flash('Ошибка загрузки страницы.', 'error')
         return redirect(url_for('index'))
-    service_name = service.service_name
-    return render_template('cost.html', service_code=service_code, service_name=service_name, total_cost=total_cost)
 
 # Расчет количества материала
 @app.route('/material', methods=['GET', 'POST'])
@@ -322,16 +383,23 @@ def material():
 
             flash(f'Необходимое количество материала: {result} единиц.', 'success')
             return redirect(url_for('material'))
-        except ValueError:
+        except ValueError as e:
+            logger.error(f"Invalid input for material calculation: {str(e)}")
             flash('Некорректные данные: количество должно быть целым, параметры услуги — числом.', 'error')
             return redirect(url_for('material'))
         except Exception as e:
+            logger.error(f"Error in material calculation: {str(e)}")
             flash(f'Ошибка: {str(e)}', 'error')
             return redirect(url_for('material'))
 
-    service_types = ServiceType.query.all()
-    material_types = MaterialType.query.all()
-    return render_template('material.html', service_types=service_types, material_types=material_types)
+    try:
+        service_types = ServiceType.query.all()
+        material_types = MaterialType.query.all()
+        return render_template('material.html', service_types=service_types, material_types=material_types)
+    except Exception as e:
+        logger.error(f"Error loading material page: {str(e)}")
+        flash('Ошибка загрузки страницы.', 'error')
+        return render_template('material.html', service_types=[], material_types=[])
 
 if __name__ == '__main__':
     app.run(debug=True)
