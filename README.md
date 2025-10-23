@@ -17,7 +17,6 @@ https://demo-probo.vercel.app/
 ```
 demo_probo/
 ├── app.py                   # Основной код приложения (Flask)
-├── init_db.sql              # SQL-скрипт для создания и заполнения базы данных
 ├── requirements.txt         # Зависимости Python
 ├── vercel.json              # Конфигурация для Vercel
 ├── .env                    # Переменные окружения
@@ -37,7 +36,5 @@ demo_probo/
 │   ├── edit_partner.html   # Форма добавления/редактирования партнера
 │   ├── partner_history.html # История услуг партнера
 │   └── material.html       # Форма расчета количества материала
-├── diagrams/
-│   └── material_quantity_calculation.puml # Блок-схема расчета материала
 ├── README.md               # Этот файл
 ```
