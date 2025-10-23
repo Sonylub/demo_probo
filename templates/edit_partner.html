@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}БыстрыйПуть - {% if partner %}Редактировать партнера{% else %}Добавить партнера{% endif %}{% endblock %}
+{% block header %}{% if partner %}Редактировать партнера{% else %}Добавить партнера{% endif %}{% endblock %}
+{% block content %}
+    <form method="POST">
+        <label for="partner_name">Наименование:</label>
+        <input type="text" id="partner_name" name="partner_name" value="{{ partner.partner_name if partner else '' }}" required placeholder="Введите название партнера">
+        <label for="partner_type">Тип партнера:</label>
+        <select id="partner_type" name="partner_type" required>
+            <option value="">Выберите тип</option>
+            {% for type in partner_types %}
+            <option value="{{ type }}" {% if partner and partner.partner_type == type %}selected{% endif %}>{{ type }}</option>
+            {% endfor %}
+        </select>
+        <label for="manager">ФИО руководителя:</label>
+        <input type="text" id="manager" name="manager" value="{{ partner.manager if partner else '' }}" required placeholder="Введите ФИО">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ partner.email if partner else '' }}" required placeholder="Введите email">
+        <label for="phone">Телефон:</label>
+        <input type="text" id="phone" name="phone" value="{{ partner.phone if partner else '' }}" required placeholder="Введите телефон">
+        <label for="address">Адрес:</label>
+        <input type="text" id="address" name="address" value="{{ partner.address if partner else '' }}" required placeholder="Введите адрес">
+        <label for="inn">ИНН:</label>
+        <input type="text" id="inn" name="inn" value="{{ partner.inn if partner else '' }}" required placeholder="Введите ИНН (10 или 12 цифр)">
+        <label for="rating">Рейтинг:</label>
+        <input type="number" id="rating" name="rating" value="{{ partner.rating if partner else '' }}" min="0" required placeholder="Введите рейтинг">
+        <button type="submit">{% if partner %}Сохранить изменения{% else %}Добавить партнера{% endif %}</button>
+        <a href="{{ url_for('index') }}" class="button">Назад</a>
+    </form>
+{% endblock %}

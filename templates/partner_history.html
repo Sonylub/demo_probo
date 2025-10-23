@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}БыстрыйПуть - История услуг партнера{% endblock %}
+{% block header %}История услуг партнера: {{ partner.partner_name }}{% endblock %}
+{% block content %}
+    <table>
+        <tr>
+            <th>Наименование услуги</th>
+            <th>Количество</th>
+            <th>Дата выполнения</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.service.service_name }}</td>
+            <td>{{ order.quantity }}</td>
+            <td>{{ order.execution_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{{ url_for('index') }}" class="button">Назад</a>
+{% endblock %}

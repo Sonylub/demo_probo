@@ -39,31 +39,29 @@
         }
         </script>{% extends "base.html" %}
 
-{% block title %}БыстрыйПуть - Партнеры{% endblock %}
-{% block header %}Список партнеров{% endblock %}
+{% block title %}БыстрыйПуть - Рассчитать количество материала{% endblock %}
+{% block header %}Рассчитать количество материала{% endblock %}
 {% block content %}
-    <table>
-        <tr>
-            <th>Название</th>
-            <th>Тип</th>
-            <th>Адрес</th>
-            <th>ИНН</th>
-            <th>Контактное лицо</th>
-            <th>Email</th>
-            <th>Телефон</th>
-            <th>Рейтинг</th>
-        </tr>
-        {% for partner in partners %}
-        <tr>
-            <td>{{ partner.name }}</td>
-            <td>{{ partner.type }}</td>
-            <td>{{ partner.address }}</td>
-            <td>{{ partner.inn }}</td>
-            <td>{{ partner.contact_name }}</td>
-            <td>{{ partner.email }}</td>
-            <td>{{ partner.phone }}</td>
-            <td>{{ partner.rating }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <form method="POST">
+        <label for="service_type">Тип услуги:</label>
+        <select id="service_type" name="service_type" required>
+            <option value="">Выберите тип услуги</option>
+            {% for service_type in service_types %}
+            <option value="{{ service_type.type_name }}">{{ service_type.type_name }}</option>
+            {% endfor %}
+        </select>
+        <label for="material_type">Тип материала:</label>
+        <select id="material_type" name="material_type" required>
+            <option value="">Выберите тип материала</option>
+            {% for material_type in material_types %}
+            <option value="{{ material_type.type_name }}">{{ material_type.type_name }}</option>
+            {% endfor %}
+        </select>
+        <label for="quantity">Количество услуг:</label>
+        <input type="number" id="quantity" name="quantity" min="1" required placeholder="Введите количество">
+        <label for="service_params">Параметры услуги (например, вес, кг):</label>
+        <input type="number" id="service_params" name="service_params" step="0.01" required placeholder="Введите параметры">
+        <button type="submit">Рассчитать</button>
+        <a href="{{ url_for('index') }}" class="button">Назад</a>
+    </form>
 {% endblock %}

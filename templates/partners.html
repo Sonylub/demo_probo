@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}БыстрыйПуть - Партнеры{% endblock %}
+{% block header %}Список партнеров{% endblock %}
+{% block content %}
+    <table>
+        <tr>
+            <th>Название</th>
+            <th>Тип</th>
+            <th>Адрес</th>
+            <th>ИНН</th>
+            <th>Контактное лицо</th>
+            <th>Email</th>
+            <th>Телефон</th>
+            <th>Рейтинг</th>
+            <th>Действия</th>
+        </tr>
+        {% for partner in partners %}
+        <tr>
+            <td><a href="{{ url_for('partner_history', partner_id=partner.partner_id) }}">{{ partner.partner_name }}</a></td>
+            <td>{{ partner.partner_type }}</td>
+            <td>{{ partner.address }}</td>
+            <td>{{ partner.inn }}</td>
+            <td>{{ partner.manager }}</td>
+            <td>{{ partner.email }}</td>
+            <td>{{ partner.phone }}</td>
+            <td>{{ partner.rating }}</td>
+            <td><a href="{{ url_for('edit_partner', partner_id=partner.partner_id) }}">Редактировать</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

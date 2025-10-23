@@ -33,7 +33,7 @@ nav a:hover {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 20px auto;
     padding: 20px;
     background-color: #E0FFFF;
@@ -55,28 +55,57 @@ table, th, td {
 }
 
 th, td {
-    padding: 10px;
+    padding: 12px;
     text-align: left;
 }
 
 form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    max-width: 500px;
 }
 
 input, select, button {
     padding: 10px;
     font-size: 16px;
+    border: 1px solid #00CED1;
+    border-radius: 4px;
 }
 
-button {
+button, .button {
     background-color: #00CED1;
     color: white;
     border: none;
     cursor: pointer;
+    text-align: center;
+    display: inline-block;
+    padding: 10px;
+    text-decoration: none;
 }
 
-button:hover {
+button:hover, .button:hover {
     background-color: #0099A8;
+}
+
+.alert {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-icon {
+    margin-right: 10px;
 }

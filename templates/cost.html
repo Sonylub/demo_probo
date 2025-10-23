@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}БыстрыйПуть - Себестоимость услуги{% endblock %}
+{% block header %}Себестоимость услуги{% endblock %}
+{% block content %}
+    <h2>Услуга: {{ service_name }} ({{ service_code }})</h2>
+    {% if total_cost == -1 %}
+        <p>Ошибка: данные для расчета себестоимости не найдены.</p>
+    {% else %}
+        <p>Себестоимость: {{ total_cost }} руб.</p>
+    {% endif %}
+    <a href="{{ url_for('index') }}" class="button">Назад</a>
+{% endblock %}

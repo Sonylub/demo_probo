@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+</head>
+<body>
+    <header>
+        <img src="/static/img/Лого.jpg" alt="SwiftWay Logo">
+        <h1>{% block header %}{% endblock %}</h1>
+    </header>
+    <nav>
+        <a href="{{ url_for('index') }}">Партнеры</a>
+        <!-- <a href="{{ url_for('partners') }}">Партнеры</a> -->
+        <a href="{{ url_for('order') }}">Создать заказ</a>
+        <a href="{{ url_for('material') }}">Рассчитать материал</a>
+    </nav>
+    <div class="container">
+        {% for message in get_flashed_messages(with_categories=true) %}
+            <div class="alert alert-{{ message[0] }}">
+                <span class="alert-icon">{{ '❌' if message[0] == 'error' else '✅' if message[0] == 'success' else '⚠️' }}</span>
+                {{ message[1] }}
+            </div>
+        {% endfor %}
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
